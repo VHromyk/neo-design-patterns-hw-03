@@ -1,25 +1,21 @@
-import { PaymentContext } from "./app/PaymentContext";
-import { PaymentProviderFactory } from "./core/PaymentProviderFactory";
-import { StripeFactory } from "./providers/stripe/StripeFactory";
-import { PaypalFactory } from "./providers/paypal/PaypalFactory";
-import { AppleFactory } from "./providers/apple/AppleFactory";
+import { INotificationChannel, INotificationService } from "./core/interfaces";
+import { User } from "./models/User";
+import { Logger } from "./services/Logger";
+import { EmailNotification } from "./services/EmailNotification";
+import { SMSNotification } from "./services/SMSNotification";
+import { PushNotification } from "./services/PushNotification";
+import { NotificationService } from "./services/NotificationService";
 
-const providerArg = process.argv[2]?.toLowerCase();
+const user = new User("example@email.com", "+380123456789", "device-token-abc");
 
-const factories: Record<string, PaymentProviderFactory> = {
-  stripe: new StripeFactory(),
-  paypal: new PaypalFactory(),
-  apple: new AppleFactory(),
-};
+const logger = new Logger();
 
-const factory = factories[providerArg];
+const channels: INotificationChannel[] = [
+  new EmailNotification(user.email, logger),
+  new SMSNotification(user.phone, logger),
+  new PushNotification(user.deviceToken, logger),
+];
 
-if (!factory) {
-  console.error(
-    `Unknown provider: "${providerArg}". Use: stripe | paypal | apple`,
-  );
-  process.exit(1);
-}
+const notificationService: INotificationService = new NotificationService(channels);
 
-const context = new PaymentContext(factory);
-context.processPayment(100);
+notificationService.notify("Ваш платіж оброблено успішно!");
